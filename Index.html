@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>DHL 5S Daily Check</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --Y:#FFCC00; --R:#D40511; --D:#1C1C1C; --G:#F2F2F2; --B:#E0E0E0;
+  --c1:#D40511; --c2:#FF6B35; --c3:#28A745; --c4:#007BFF; --c5:#7B2FBE;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Kanit',sans-serif;background:var(--G);min-height:100vh;}
+
+/* ── CAMERA MODAL ── */
+#camModal{
+  position:fixed;inset:0;background:#000;z-index:9999;
+  flex-direction:column;display:none;
+}
+#camModal.open{display:flex;}
+.cam-hdr{
+  position:absolute;top:0;left:0;right:0;z-index:1;
+  background:linear-gradient(rgba(0,0,0,0.8),transparent);
+  padding:14px 16px 28px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.cam-x{
+  background:rgba(255,255,255,0.2);border:none;color:#fff;
+  font-family:'Kanit',sans-serif;font-size:14px;
+  padding:8px 16px;border-radius:20px;cursor:pointer;
+}
+.cam-lbl{color:#fff;font-size:15px;font-weight:700;text-align:center;}
+.cam-slot{color:var(--Y);font-size:12px;font-weight:600;}
+#camVideo{width:100%;height:100%;object-fit:cover;flex:1;}
+#camCanvas{display:none;}
+.cam-ftr{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(transparent,rgba(0,0,0,0.8));
+  padding:28px 0 44px;
+  display:flex;justify-content:center;align-items:center;gap:32px;
+}
+.cam-shoot{
+  width:76px;height:76px;border-radius:50%;
+  border:4px solid #fff;background:rgba(255,255,255,0.15);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;
+}
+.cam-shoot:active{transform:scale(0.9);}
+.cam-shoot-inner{width:58px;height:58px;border-radius:50%;background:#fff;}
+.cam-flip{
+  width:48px;height:48px;border-radius:50%;
+  background:rgba(255,255,255,0.2);border:none;
+  color:#fff;font-size:22px;cursor:pointer;
+}
+
+/* ── GUIDE MODAL ── */
+#guideModal{
+  position:fixed;inset:0;background:rgba(0,0,0,0.7);
+  z-index:5000;display:none;align-items:flex-end;
+}
+#guideModal.open{display:flex;}
+.gm-box{
+  background:#fff;width:100%;border-radius:20px 20px 0 0;
+  max-height:92vh;overflow-y:auto;
+}
+.gm-hdr{
+  padding:16px 20px;display:flex;justify-content:space-between;align-items:center;
+  position:sticky;top:0;background:#fff;border-bottom:1px solid #f0f0f0;z-index:1;
+  font-size:17px;font-weight:700;
+}
+.gm-hdr button{background:none;border:none;font-size:22px;cursor:pointer;color:#999;}
+.gm-body{padding:16px;display:flex;flex-direction:column;gap:12px;padding-bottom:30px;}
+.gc{border-radius:14px;padding:16px;border-left:5px solid;}
+.gc1{background:#fff5f5;border-color:var(--c1);}
+.gc2{background:#fff8f0;border-color:var(--c2);}
+.gc3{background:#f0fbf4;border-color:var(--c3);}
+.gc4{background:#f0f6ff;border-color:var(--c4);}
+.gc5{background:#f7f0ff;border-color:var(--c5);}
+.gc-s{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;}
+.gc-title{font-size:16px;font-weight:700;margin-bottom:8px;}
+.gc-desc{font-size:13px;color:#555;line-height:2;}
+.gc-pass{margin-top:10px;padding:8px 12px;background:rgba(40,167,69,0.12);border-radius:8px;font-size:12px;color:#1a6b35;font-weight:600;}
+.gc-tip{margin-top:6px;padding:8px 12px;background:rgba(255,204,0,0.18);border-radius:8px;font-size:12px;color:#7a5800;}
+
+/* ── OVERLAY GPS ── */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.72);
+  z-index:4000;display:none;align-items:center;justify-content:center;
+}
+.overlay.open{display:flex;}
+.ov-box{background:#fff;border-radius:18px;padding:32px 28px;text-align:center;max-width:280px;width:90%;}
+.spinner{
+  width:46px;height:46px;border:4px solid #f0f0f0;
+  border-top-color:var(--R);border-radius:50%;
+  animation:spin 0.8s linear infinite;margin:0 auto 14px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── HEADER ── */
+.header{
+  background:var(--D);padding:12px 16px;
+  display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:200;
+  box-shadow:0 3px 12px rgba(0,0,0,0.4);
+}
+.logo{
+  background:var(--Y);color:var(--D);font-weight:900;
+  font-size:15px;padding:5px 10px;border-radius:5px;flex-shrink:0;
+}
+.hdr-i{flex:1;min-width:0;}
+.hdr-t{font-size:14px;font-weight:700;color:#fff;}
+.hdr-s{font-size:11px;color:#aaa;font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.guide-btn{
+  width:38px;height:38px;border-radius:50%;flex-shrink:0;cursor:pointer;
+  background:rgba(255,204,0,0.15);border:1px solid rgba(255,204,0,0.4);
+  color:var(--Y);font-size:18px;display:flex;align-items:center;justify-content:center;
+}
+
+/* ── SCREENS ── */
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ── ROLE ── */
+.role-hero{
+  background:linear-gradient(160deg,#1C1C1C 0%,#2d2d2d 100%);
+  padding:36px 20px 28px;text-align:center;color:#fff;
+  border-bottom:4px solid var(--Y);
+}
+.r-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--Y);color:var(--D);font-size:38px;font-weight:900;
+  width:80px;height:80px;border-radius:16px;margin-bottom:14px;
+  box-shadow:0 8px 24px rgba(255,204,0,0.4);
+}
+.r-title{font-size:17px;font-weight:700;margin-bottom:4px;}
+.r-sub{font-size:12px;color:#999;}
+.clock{
+  display:inline-block;background:rgba(255,204,0,0.12);
+  border:1px solid rgba(255,204,0,0.35);color:var(--Y);
+  font-size:26px;font-weight:700;padding:8px 22px;
+  border-radius:10px;margin-top:14px;letter-spacing:2px;font-variant-numeric:tabular-nums;
+}
+.role-grid{padding:20px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.rc{
+  background:#fff;border-radius:16px;padding:24px 16px;text-align:center;
+  cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.08);
+  border:2px solid transparent;transition:all 0.2s;
+}
+.rc:active{border-color:var(--Y);transform:scale(0.97);}
+.rc-icon{font-size:40px;margin-bottom:10px;}
+.rc-name{font-size:16px;font-weight:700;margin-bottom:4px;}
+.rc-desc{font-size:12px;color:#999;}
+
+/* ── FORM ── */
+.fw{padding:20px 16px;}
+.fl{font-size:11px;font-weight:700;color:#777;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;display:block;}
+.fi,.fs{
+  width:100%;padding:14px 16px;border:2px solid var(--B);
+  border-radius:12px;font-family:'Kanit',sans-serif;font-size:15px;
+  background:#fff;margin-bottom:14px;-webkit-appearance:none;
+}
+.fi:focus,.fs:focus{outline:none;border-color:var(--Y);}
+.fs{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpath fill='%23555' d='M5 7L0 2h10z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 16px center;padding-right:40px;
+}
+.tbanner{padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:13px;display:flex;align-items:center;gap:8px;}
+.tok{background:#d4f0dc;color:#1a6b35;border:1px solid #a3d9b3;}
+.twarn{background:#fff8e1;color:#7a5800;border:1px solid #ffd54f;}
+.btn{
+  width:100%;padding:16px;background:var(--R);color:#fff;
+  border:none;border-radius:12px;font-family:'Kanit',sans-serif;
+  font-size:17px;font-weight:700;cursor:pointer;margin-bottom:10px;
+  box-shadow:0 4px 16px rgba(212,5,17,0.4);transition:all 0.15s;
+}
+.btn:active{transform:scale(0.97);}
+.btn2{
+  width:100%;padding:13px;background:#fff;color:var(--D);
+  border:2px solid var(--B);border-radius:12px;
+  font-family:'Kanit',sans-serif;font-size:15px;font-weight:600;cursor:pointer;
+}
+
+/* ── PROGRESS ── */
+.prog{background:var(--D);padding:12px 16px;border-bottom:2px solid rgba(255,204,0,0.3);}
+.prog-meta{display:flex;justify-content:space-between;color:#fff;font-size:12px;margin-bottom:6px;}
+.prog-track{background:rgba(255,255,255,0.15);border-radius:999px;height:7px;overflow:hidden;}
+.prog-fill{background:var(--Y);height:100%;border-radius:999px;transition:width 0.5s cubic-bezier(.4,0,.2,1);}
+
+/* ── ZONE CARDS ── */
+.zw{padding:14px;display:flex;flex-direction:column;gap:14px;padding-bottom:100px;}
+.zcard{
+  background:#fff;border-radius:16px;overflow:hidden;
+  box-shadow:0 2px 10px rgba(0,0,0,0.07);
+  border:2px solid transparent;transition:border-color 0.3s;
+}
+.zcard.zdone{border-color:#28a745;}
+.ztop{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;}
+.zico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.zinfo{flex:1;}
+.zname{font-size:16px;font-weight:700;}
+.zen{font-size:11px;color:#aaa;}
+.zstat{font-size:12px;font-weight:600;color:#bbb;margin-top:2px;}
+.ztick{
+  width:28px;height:28px;border-radius:50%;background:#eee;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;transition:all 0.3s;flex-shrink:0;
+}
+.ztick.ok{background:#28a745;color:#fff;}
+.zbody{padding:0 14px 14px;border-top:1px solid #f5f5f5;}
+.slots-lbl{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 8px;}
+.slots-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+
+/* PHOTO SLOT */
+.pslot{
+  aspect-ratio:1;border-radius:12px;overflow:hidden;
+  border:2px dashed #ddd;background:#FAFAFA;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;transition:all 0.2s;position:relative;
+}
+.pslot:active{border-color:var(--Y);}
+.pslot.pfilled{border:none;}
+.pslot-ico{font-size:26px;margin-bottom:4px;}
+.pslot-txt{font-size:10px;color:#bbb;text-align:center;}
+.pslot-img{width:100%;height:100%;object-fit:cover;display:none;}
+.pslot-img.show{display:block;}
+.pslot-retake{
+  position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.65);
+  color:#fff;font-size:10px;text-align:center;padding:5px;display:none;cursor:pointer;
+}
+.pslot.pfilled .pslot-retake{display:block;}
+.fi-hidden{display:none;}
+
+.rmkta{
+  width:100%;padding:11px 13px;border:2px solid #e8e8e8;border-radius:10px;
+  font-family:'Kanit',sans-serif;font-size:13px;resize:none;height:70px;
+}
+.rmkta:focus{outline:none;border-color:var(--Y);}
+
+/* ── STICKY SUBMIT ── */
+.sticky{
+  position:fixed;bottom:0;left:0;right:0;background:#fff;
+  padding:12px 16px 22px;box-shadow:0 -4px 20px rgba(0,0,0,0.12);z-index:100;
+}
+.sticky-hint{text-align:center;font-size:11px;color:#bbb;margin-top:4px;}
+
+/* ── DONE ── */
+.dw{padding:32px 16px 40px;text-align:center;}
+.d-ico{font-size:68px;animation:pop 0.5s ease;margin-bottom:12px;}
+@keyframes pop{0%{transform:scale(0.5);opacity:0}80%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+.d-title{font-size:24px;font-weight:800;margin-bottom:4px;}
+.d-sub{font-size:13px;color:#999;margin-bottom:20px;}
+.sc{background:#fff;border-radius:16px;padding:16px 18px;box-shadow:0 2px 12px rgba(0,0,0,0.07);margin-bottom:14px;text-align:left;}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f5f5f5;font-size:13px;}
+.sr:last-child{border-bottom:none;}
+.sk{color:#999;}.sv{font-weight:700;text-align:right;max-width:65%;font-size:13px;}
+.spill{
+  display:inline-flex;align-items:center;
+  background:var(--Y);color:var(--D);font-weight:800;
+  padding:3px 14px;border-radius:999px;font-size:14px;
+}
+
+/* ── MANAGER ── */
+.mw{padding:20px 16px 40px;}
+.m-title{font-size:18px;font-weight:800;text-align:center;margin-bottom:6px;}
+.m-sub{font-size:12px;color:#999;text-align:center;margin-bottom:20px;}
+.szcard{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.szname{font-size:15px;font-weight:700;margin-bottom:10px;}
+.szstars{display:flex;gap:6px;}
+.szstar{
+  flex:1;padding:10px 2px;border:2px solid #e0e0e0;background:#fff;
+  border-radius:8px;font-size:16px;cursor:pointer;text-align:center;
+  transition:all 0.15s;font-family:'Kanit',sans-serif;
+}
+.szstar.lit{border-color:var(--Y);background:#FFFBEA;}
+.szrmk{
+  width:100%;margin-top:10px;padding:10px 12px;
+  border:2px solid #e8e8e8;border-radius:8px;
+  font-family:'Kanit',sans-serif;font-size:13px;resize:none;height:60px;
+}
+.szrmk:focus{outline:none;border-color:var(--Y);}
+
+/* helpers */
+.c1{color:var(--c1)}.c2{color:var(--c2)}.c3{color:var(--c3)}.c4{color:var(--c4)}.c5{color:var(--c5)}
+.bgl1{background:#fff5f5}.bgl2{background:#fff8f0}.bgl3{background:#f0fbf4}.bgl4{background:#f0f6ff}.bgl5{background:#f7f0ff}
+</style>
+</head>
+<body>
+
+<!-- ═══ CAMERA MODAL ════════════════════════════════════ -->
+<div id="camModal">
+  <div class="cam-hdr">
+    <button class="cam-x" onclick="closeCam()">✕ ยกเลิก</button>
+    <div class="cam-lbl" id="camZoneLbl">—</div>
+    <div class="cam-slot" id="camSlotLbl">ภาพที่ 1/3</div>
+  </div>
+  <video id="camVideo" autoplay playsinline muted></video>
+  <canvas id="camCanvas"></canvas>
+  <div class="cam-ftr">
+    <button class="cam-flip" onclick="flipCam()">🔄</button>
+    <div class="cam-shoot" onclick="shoot()"><div class="cam-shoot-inner"></div></div>
+    <div style="width:48px;"></div>
+  </div>
+</div>
+
+<!-- ═══ GUIDE MODAL ═════════════════════════════════════ -->
+<div id="guideModal">
+  <div class="gm-box">
+    <div class="gm-hdr">
+      <span>📖 คู่มือหลักการ 5S</span>
+      <button onclick="closeGuide()">✕</button>
+    </div>
+    <div class="gm-body">
+
+      <div class="gc gc1">
+        <div class="gc-s c1">1S — สะสาง · SORT · SEIRI</div>
+        <div class="gc-title">แยกของที่จำเป็นออกจากไม่จำเป็น</div>
+        <div class="gc-desc">
+          📌 ตรวจสอบทุกรายการในพื้นที่ทำงาน<br>
+          📌 แยกประเภท: ใช้งาน / ไม่ได้ใช้ / ยังไม่แน่ใจ<br>
+          📌 กำจัดของที่ไม่จำเป็นออกจากพื้นที่ทันที<br>
+          📌 ติดป้าย Red Tag กับของที่รอตัดสินใจ<br>
+          📌 ไม่สะสมพัสดุ / อุปกรณ์โดยไม่จำเป็น
+        </div>
+        <div class="gc-pass">✅ ผ่าน: ไม่มีของที่ไม่ใช้วางในพื้นที่ปฏิบัติงาน</div>
+        <div class="gc-tip">💡 ถามตัวเองว่า "ใช้ในเดือนนี้ไหม?" ถ้าไม่ → เอาออก</div>
+      </div>
+
+      <div class="gc gc2">
+        <div class="gc-s c2">2S — สะดวก · SET IN ORDER · SEITON</div>
+        <div class="gc-title">จัดวางของที่จำเป็นให้เป็นระเบียบ</div>
+        <div class="gc-desc">
+          📌 ทุกชิ้นต้องมี "บ้าน" ของตัวเอง<br>
+          📌 ติดป้ายและกำหนดตำแหน่งวางที่ชัดเจน<br>
+          📌 ใช้หลัก FIFO กับพัสดุ (First In First Out)<br>
+          📌 จัดให้หยิบง่าย ใช้งานได้รวดเร็ว<br>
+          📌 วาดเส้นกำหนดพื้นที่ (Line Marking) ให้ชัดเจน
+        </div>
+        <div class="gc-pass">✅ ผ่าน: ทุกอย่างมีป้ายบอก หยิบได้ใน 30 วินาที</div>
+        <div class="gc-tip">💡 ถ้าต้องถามว่าวางไว้ไหน = ยังไม่สะดวก</div>
+      </div>
+
+      <div class="gc gc3">
+        <div class="gc-s c3">3S — สะอาด · SHINE · SEISO</div>
+        <div class="gc-title">ทำความสะอาดและตรวจสอบอุปกรณ์</div>
+        <div class="gc-desc">
+          📌 ทำความสะอาดพื้น โต๊ะ อุปกรณ์ทุกวัน<br>
+          📌 ตรวจสอบอุปกรณ์ขณะทำความสะอาด<br>
+          📌 แจ้งซ่อมทันทีเมื่อพบชำรุดหรือผิดปกติ<br>
+          📌 ทำความสะอาดหลังใช้งานทุกครั้ง<br>
+          📌 กำหนดตารางเวรทำความสะอาดประจำวัน
+        </div>
+        <div class="gc-pass">✅ ผ่าน: พื้นที่สะอาด ไม่มีคราบ ไม่มีขยะ</div>
+        <div class="gc-tip">💡 สะอาด = ตรวจสอบด้วย ไม่ใช่แค่กวาด</div>
+      </div>
+
+      <div class="gc gc4">
+        <div class="gc-s c4">4S — สุขลักษณะ · STANDARDIZE · SEIKETSU</div>
+        <div class="gc-title">รักษามาตรฐาน 3S แรกให้สม่ำเสมอ</div>
+        <div class="gc-desc">
+          📌 สร้าง SOP และ Visual Management ในพื้นที่<br>
+          📌 ทำให้ 3S แรกเป็นเรื่องปกติ ไม่ใช่พิเศษ<br>
+          📌 ติดภาพ Before–After เป็นมาตรฐานอ้างอิง<br>
+          📌 ทบทวนและอัพเดต SOP อย่างสม่ำเสมอ<br>
+          📌 ทุกคนในทีมรู้มาตรฐานเดียวกัน
+        </div>
+        <div class="gc-pass">✅ ผ่าน: มี SOP / ป้ายมาตรฐานชัดเจนในพื้นที่</div>
+        <div class="gc-tip">💡 ถ้าต้องบอกวาจา = ยังไม่ Standardize</div>
+      </div>
+
+      <div class="gc gc5">
+        <div class="gc-s c5">5S — สร้างนิสัย · SUSTAIN · SHITSUKE</div>
+        <div class="gc-title">รักษาวินัย ทำ 5S ให้เป็นส่วนหนึ่งของงาน</div>
+        <div class="gc-desc">
+          📌 ทำ 5S ทุกวันโดยไม่ต้องรอให้สั่ง<br>
+          📌 รายงานปัญหาที่พบทันที ไม่ปล่อยผ่าน<br>
+          📌 ให้ความร่วมมือกับทีมอย่างสม่ำเสมอ<br>
+          📌 เป็นแบบอย่างที่ดีให้เพื่อนร่วมงาน<br>
+          📌 เข้าร่วมการตรวจ 5S ประจำเดือนทุกครั้ง
+        </div>
+        <div class="gc-pass">✅ ผ่าน: ทำ 5S ได้โดยไม่ต้องรอให้บอก</div>
+        <div class="gc-tip">💡 5S ที่ดีที่สุด = ทำเองโดยสมัครใจ</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ GPS OVERLAY ══════════════════════════════════════ -->
+<div class="overlay" id="gpsOverlay">
+  <div class="ov-box">
+    <div class="spinner"></div>
+    <div style="font-weight:700;font-size:16px;margin-bottom:6px;">กำลังระบุตำแหน่ง GPS...</div>
+    <div style="font-size:12px;color:#999;">โปรดอนุญาตการเข้าถึงตำแหน่งที่ตั้ง</div>
+  </div>
+</div>
+
+<!-- ═══ HEADER ═══════════════════════════════════════════ -->
+<header class="header">
+  <div class="logo">DHL</div>
+  <div class="hdr-i">
+    <div class="hdr-t">5S Daily Check</div>
+    <div class="hdr-s" id="hdrSub">DHL Ecommerce Solution Thailand</div>
+  </div>
+  <button class="guide-btn" onclick="openGuide()" title="คู่มือ 5S">📖</button>
+</header>
+
+<!-- ═══ SCREEN: ROLE ══════════════════════════════════════ -->
+<div class="screen active" id="scRole">
+  <div class="role-hero">
+    <div class="r-badge">5S</div>
+    <div class="r-title">ระบบตรวจสอบความสะอาดรายวัน</div>
+    <div class="r-sub">DHL Ecommerce Solution Thailand</div>
+    <div class="clock" id="clockEl">00:00:00</div>
+  </div>
+  <div class="role-grid">
+    <div class="rc" onclick="show('scLogin')">
+      <div class="rc-icon">👷</div>
+      <div class="rc-name">Staff</div>
+      <div class="rc-desc">อัพโหลดรูปภาพรายวัน</div>
+    </div>
+    <div class="rc" onclick="mgLogin()">
+      <div class="rc-icon">👩‍💼</div>
+      <div class="rc-name">Manager</div>
+      <div class="rc-desc">ให้คะแนนและดูรายงาน</div>
+    </div>
+  </div>
+  <div style="padding:0 16px 24px;text-align:center;">
+    <div style="font-size:12px;color:#bbb;">📖 กดปุ่มคู่มือมุมขวาบนเพื่ออ่านวิธีการ 5S</div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: LOGIN ══════════════════════════════════════ -->
+<div class="screen" id="scLogin">
+  <div class="fw">
+    <div id="timeBanner"></div>
+    <label class="fl">📍 Depot / สาขา</label>
+    <select class="fs" id="depotSel">
+      <option value="">-- เลือกสาขา --</option>
+      <option>Depot 1 - กรุงเทพฯ</option>
+      <option>Depot 2 - นนทบุรี</option>
+      <option>Depot 3 - ปทุมธานี</option>
+      <option>Depot 4 - สมุทรปราการ</option>
+      <option>Depot 5 - ชลบุรี</option>
+      <option>Depot 6 - เชียงใหม่</option>
+      <option>Depot 7 - ขอนแก่น</option>
+    </select>
+    <label class="fl">👤 ชื่อ Staff ผู้รายงาน</label>
+    <input class="fi" id="staffEl" type="text" placeholder="ชื่อ-นามสกุล">
+    <button class="btn" onclick="startStaff()">🚀 เริ่มถ่ายภาพ 5S</button>
+    <button class="btn2" onclick="show('scRole')">← ย้อนกลับ</button>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: ZONES ══════════════════════════════════════ -->
+<div class="screen" id="scZones">
+  <div class="prog">
+    <div class="prog-meta">
+      <span id="progText">0 / 5 โซน</span>
+      <span id="progPct">0%</span>
+    </div>
+    <div class="prog-track">
+      <div class="prog-fill" id="progFill" style="width:0%"></div>
+    </div>
+  </div>
+  <div class="zw" id="zonesWrap"></div>
+  <div class="sticky">
+    <button class="btn" onclick="doSubmit()">📤 ส่งข้อมูลให้ผู้จัดการ</button>
+    <div class="sticky-hint">📍 GPS + Timestamp บันทึกอัตโนมัติ • Watermark ฝังในรูปทุกใบ</div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: STAFF DONE ═════════════════════════════════ -->
+<div class="screen" id="scDone">
+  <div class="dw">
+    <div class="d-ico">✅</div>
+    <div class="d-title">ส่งข้อมูลสำเร็จ!</div>
+    <div class="d-sub" id="doneSub">—</div>
+    <div class="sc">
+      <div class="sr"><span class="sk">📍 Depot</span><span class="sv" id="d_depot">—</span></div>
+      <div class="sr"><span class="sk">👤 Staff</span><span class="sv" id="d_staff">—</span></div>
+      <div class="sr"><span class="sk">🕐 เวลา</span><span class="sv" id="d_time">—</span></div>
+      <div class="sr"><span class="sk">📌 GPS</span><span class="sv" id="d_gps" style="font-size:11px;">—</span></div>
+      <div class="sr"><span class="sk">📸 รูปทั้งหมด</span><span class="sv" id="d_photos">—</span></div>
+    </div>
+    <button class="btn" onclick="copyStaffReport()">📋 คัดลอกรายงานส่ง Line</button>
+    <button class="btn2" onclick="resetStaff()">🔄 รายงานสาขาถัดไป</button>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: MANAGER ════════════════════════════════════ -->
+<div class="screen" id="scManager">
+  <div class="mw">
+    <div class="m-title">👩‍💼 ให้คะแนน 5S รายสาขา</div>
+    <div class="m-sub">ให้คะแนนหลังจากตรวจสอบรูปภาพจาก Staff แล้ว</div>
+    <label class="fl">📍 Depot ที่ตรวจ</label>
+    <select class="fs" id="mgrDepot">
+      <option value="">-- เลือกสาขา --</option>
+      <option>Depot 1 - กรุงเทพฯ</option>
+      <option>Depot 2 - นนทบุรี</option>
+      <option>Depot 3 - ปทุมธานี</option>
+      <option>Depot 4 - สมุทรปราการ</option>
+      <option>Depot 5 - ชลบุรี</option>
+      <option>Depot 6 - เชียงใหม่</option>
+      <option>Depot 7 - ขอนแก่น</option>
+    </select>
+    <label class="fl">📅 วันที่ตรวจ</label>
+    <input class="fi" type="date" id="mgrDate">
+    <div id="mgrCards"></div>
+    <button class="btn" onclick="saveMgr()">💾 บันทึกและออกรายงาน</button>
+    <button class="btn2" onclick="show('scRole')">← ย้อนกลับ</button>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: MANAGER DONE ══════════════════════════════ -->
+<div class="screen" id="scMgrDone">
+  <div class="dw">
+    <div class="d-ico">📊</div>
+    <div class="d-title">รายงานคะแนน 5S</div>
+    <div class="d-sub" id="mgrDoneSub">—</div>
+    <div class="sc" id="mgrSumCard"></div>
+    <button class="btn" onclick="copyMgrReport()">📋 คัดลอกรายงานคะแนน</button>
+    <button class="btn2" onclick="show('scManager')" style="margin-bottom:8px;">← ให้คะแนนอีกครั้ง</button>
+    <button class="btn2" onclick="show('scRole')">🏠 หน้าหลัก</button>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────
+const ZONES = [
+  {id:'office',    th:'สำนักงาน',      en:'Office',       ico:'🏢', c:'c1', bg:'bgl1'},
+  {id:'toilet',    th:'ห้องน้ำ',       en:'Toilet',       ico:'🚻', c:'c2', bg:'bgl2'},
+  {id:'sorting',   th:'พื้นที่คัดแยก', en:'Sorting Area', ico:'📦', c:'c3', bg:'bgl3'},
+  {id:'reattempt', th:'จุด Re-Attempt',en:'Re-Attempt',   ico:'🔄', c:'c4', bg:'bgl4'},
+  {id:'overview',  th:'ภาพรวม Depot',  en:'Overview',     ico:'🏭', c:'c5', bg:'bgl5'}
+];
+const N_PHOTOS = 3;   // required photos per zone
+const MGR_PASS = 'DHL5S';
+
+// ─── STATE ────────────────────────────────────────────────
+const ST = {depot:'',staff:'',gps:'',ts:'',photos:{}};
+ZONES.forEach(z => ST.photos[z.id] = Array(N_PHOTOS).fill(null));
+
+const MGR = {depot:'',date:'',scores:{},remarks:{}};
+ZONES.forEach(z => { MGR.scores[z.id]=0; MGR.remarks[z.id]=''; });
+
+// ─── CAMERA ───────────────────────────────────────────────
+let stream=null, camZone=null, camSlot=null, facing='environment';
+
+async function openCam(zid, slot) {
+  camZone=zid; camSlot=slot;
+  const z=ZONES.find(x=>x.id===zid);
+  document.getElementById('camZoneLbl').textContent=`${z.ico} ${z.th}`;
+  document.getElementById('camSlotLbl').textContent=`ภาพที่ ${slot+1}/${N_PHOTOS}`;
+  try {
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:facing,width:{ideal:1280},height:{ideal:720}},audio:false
+    });
+    document.getElementById('camVideo').srcObject=stream;
+    document.getElementById('camModal').classList.add('open');
+  } catch(e) {
+    // fallback to file input
+    const fi=document.getElementById(`fi_${zid}_${slot}`);
+    fi && fi.click();
+  }
+}
+
+async function flipCam() {
+  facing = facing==='environment'?'user':'environment';
+  if(stream) { stream.getTracks().forEach(t=>t.stop()); }
+  try {
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:facing},audio:false
+    });
+    document.getElementById('camVideo').srcObject=stream;
+  } catch(e) {}
+}
+
+function shoot() {
+  const v=document.getElementById('camVideo');
+  const c=document.getElementById('camCanvas');
+  c.width=v.videoWidth||1280; c.height=v.videoHeight||720;
+  const ctx=c.getContext('2d');
+  ctx.drawImage(v,0,0);
+  // Watermark
+  const wh=40, now=new Date().toLocaleString('th-TH');
+  const txt=`${ST.depot} | ${ST.staff} | ${now}`;
+  ctx.fillStyle='rgba(28,28,28,0.78)';
+  ctx.fillRect(0,c.height-wh,c.width,wh);
+  ctx.fillStyle='#FFCC00'; ctx.font='bold 13px Kanit,sans-serif';
+  ctx.fillText(txt,10,c.height-12);
+  const url=c.toDataURL('image/jpeg',0.85);
+  ST.photos[camZone][camSlot]=url;
+  closeCam();
+  updateSlot(camZone,camSlot,url);
+  checkZone(camZone); updateProg();
+}
+
+function closeCam() {
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  document.getElementById('camModal').classList.remove('open');
+}
+
+// fallback file input
+function onFallback(inp,zid,slot) {
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=e=>{
+    ST.photos[zid][slot]=e.target.result;
+    updateSlot(zid,slot,e.target.result);
+    checkZone(zid); updateProg();
+  };
+  r.readAsDataURL(f);
+}
+
+function clearSlot(zid,slot,ev) {
+  ev && ev.stopPropagation();
+  ST.photos[zid][slot]=null;
+  updateSlot(zid,slot,null);
+  const fi=document.getElementById(`fi_${zid}_${slot}`);
+  if(fi) fi.value='';
+  checkZone(zid); updateProg();
+}
+
+function updateSlot(zid,slot,url) {
+  const el=document.getElementById(`pslot_${zid}_${slot}`);
+  const img=document.getElementById(`pimg_${zid}_${slot}`);
+  if(url){
+    el.classList.add('pfilled');
+    img.src=url; img.classList.add('show');
+    el.querySelector('.pslot-ico').style.display='none';
+    el.querySelector('.pslot-txt').style.display='none';
+  } else {
+    el.classList.remove('pfilled');
+    img.src=''; img.classList.remove('show');
+    el.querySelector('.pslot-ico').style.display='';
+    el.querySelector('.pslot-txt').style.display='';
+  }
+}
+
+// ─── BUILD ZONES ──────────────────────────────────────────
+function buildZones() {
+  const wrap=document.getElementById('zonesWrap');
+  wrap.innerHTML='';
+  ZONES.forEach((z,i) => {
+    let slotsHtml='';
+    for(let s=0;s<N_PHOTOS;s++){
+      slotsHtml+=`
+      <div class="pslot" id="pslot_${z.id}_${s}" onclick="openCam('${z.id}',${s})">
+        <div class="pslot-ico">📷</div>
+        <div class="pslot-txt">รูปที่ ${s+1}</div>
+        <img class="pslot-img" id="pimg_${z.id}_${s}" alt="">
+        <div class="pslot-retake" onclick="clearSlot('${z.id}',${s},event)">🔄 ถ่ายใหม่</div>
+        <input type="file" accept="image/*" capture="environment" class="fi-hidden"
+          id="fi_${z.id}_${s}" onchange="onFallback(this,'${z.id}',${s})">
+      </div>`;
+    }
+    wrap.innerHTML+=`
+    <div class="zcard" id="zcard_${z.id}">
+      <div class="ztop" onclick="toggleZone('${z.id}')">
+        <div class="zico ${z.bg}"><span>${z.ico}</span></div>
+        <div class="zinfo">
+          <div class="zname ${z.c}">${z.th}</div>
+          <div class="zen">${z.en}</div>
+          <div class="zstat" id="zstat_${z.id}">ยังไม่ได้ถ่ายรูป</div>
+        </div>
+        <div class="ztick" id="ztick_${z.id}">✓</div>
+      </div>
+      <div class="zbody" id="zbody_${z.id}" style="display:${i===0?'block':'none'}">
+        <div class="slots-lbl">📷 บังคับถ่ายสด ${N_PHOTOS} รูป (Watermark ฝังอัตโนมัติ)</div>
+        <div class="slots-row">${slotsHtml}</div>
+        <textarea class="rmkta" id="zrmk_${z.id}" placeholder="หมายเหตุ (ถ้ามี)..."></textarea>
+      </div>
+    </div>`;
+  });
+}
+
+function toggleZone(id) {
+  const b=document.getElementById(`zbody_${id}`);
+  b.style.display=b.style.display==='none'?'block':'none';
+}
+
+function checkZone(id) {
+  const done=ST.photos[id].filter(p=>p).length;
+  const ok=done>=N_PHOTOS;
+  document.getElementById(`zcard_${id}`).classList.toggle('zdone',ok);
+  document.getElementById(`ztick_${id}`).classList.toggle('ok',ok);
+  const el=document.getElementById(`zstat_${id}`);
+  el.textContent = ok ? `✅ ครบ ${N_PHOTOS} รูป` : done>0 ? `📷 ถ่ายแล้ว ${done}/${N_PHOTOS}` : 'ยังไม่ได้ถ่ายรูป';
+  el.style.color = ok ? '#28a745' : done>0 ? '#FF6B35' : '#bbb';
+}
+
+function updateProg() {
+  const done=ZONES.filter(z=>ST.photos[z.id].filter(p=>p).length>=N_PHOTOS).length;
+  const pct=Math.round(done/ZONES.length*100);
+  document.getElementById('progText').textContent=`${done} / ${ZONES.length} โซน`;
+  document.getElementById('progPct').textContent=`${pct}%`;
+  document.getElementById('progFill').style.width=`${pct}%`;
+}
+
+// ─── CLOCK ────────────────────────────────────────────────
+function tick() {
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  const el=document.getElementById('clockEl');
+  if(el) el.textContent=`${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  const h=d.getHours(), inW=h>=6&&h<10;
+  const tb=document.getElementById('timeBanner');
+  if(tb) tb.innerHTML=inW
+    ? `<div class="tbanner tok">✅ อยู่ในช่วงเวลารายงาน (06:00 – 10:00 น.)</div>`
+    : `<div class="tbanner twarn">⚠️ นอกเวลารายงาน — ระบบบันทึกเวลาจริงเสมอ</div>`;
+}
+setInterval(tick,1000); tick();
+
+// ─── SCREEN ───────────────────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ─── GUIDE ────────────────────────────────────────────────
+function openGuide()  { document.getElementById('guideModal').classList.add('open'); }
+function closeGuide() { document.getElementById('guideModal').classList.remove('open'); }
+document.getElementById('guideModal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('guideModal')) closeGuide();
+});
+
+// ─── STAFF ────────────────────────────────────────────────
+function startStaff() {
+  const depot=document.getElementById('depotSel').value;
+  const staff=document.getElementById('staffEl').value.trim();
+  if(!depot){alert('กรุณาเลือก Depot');return;}
+  if(!staff){alert('กรุณากรอกชื่อ Staff');return;}
+  ST.depot=depot; ST.staff=staff;
+  document.getElementById('hdrSub').textContent=`${depot} | ${staff}`;
+  ZONES.forEach(z=>{ ST.photos[z.id]=Array(N_PHOTOS).fill(null); });
+  buildZones();
+  show('scZones');
+}
+
+function doSubmit() {
+  const missing=ZONES.filter(z=>ST.photos[z.id].filter(p=>p).length<N_PHOTOS);
+  if(missing.length){
+    alert(`ยังไม่ครบ!\nกรุณาถ่ายรูปให้ครบ ${N_PHOTOS} ใบ ในโซน:\n${missing.map(z=>`• ${z.ico} ${z.th}`).join('\n')}`);
+    return;
+  }
+  document.getElementById('gpsOverlay').classList.add('open');
+  navigator.geolocation.getCurrentPosition(
+    pos=>{ST.gps=`${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;finishStaff();},
+    ()=>{ST.gps='ไม่สามารถระบุพิกัดได้';finishStaff();},
+    {timeout:10000,enableHighAccuracy:true}
+  );
+}
+
+function finishStaff() {
+  document.getElementById('gpsOverlay').classList.remove('open');
+  ST.ts=new Date().toLocaleString('th-TH',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const total=ZONES.reduce((a,z)=>a+ST.photos[z.id].filter(p=>p).length,0);
+  document.getElementById('d_depot').textContent=ST.depot;
+  document.getElementById('d_staff').textContent=ST.staff;
+  document.getElementById('d_time').textContent=ST.ts;
+  document.getElementById('d_gps').textContent=ST.gps;
+  document.getElementById('d_photos').textContent=`${total} รูป (${ZONES.length} โซน × ${N_PHOTOS} รูป)`;
+  document.getElementById('doneSub').textContent=`${ST.depot} | ${ST.ts}`;
+  show('scDone');
+}
+
+function copyStaffReport() {
+  let txt=`📸 รายงานภาพ 5S ประจำวัน — DHL Ecommerce\n${'─'.repeat(30)}\n`;
+  txt+=`📍 Depot : ${ST.depot}\n👤 Staff  : ${ST.staff}\n🕐 เวลา  : ${ST.ts}\n📌 GPS   : ${ST.gps}\n${'─'.repeat(30)}\n`;
+  ZONES.forEach(z=>{
+    const cnt=ST.photos[z.id].filter(p=>p).length;
+    const rmk=document.getElementById(`zrmk_${z.id}`)?.value||'';
+    txt+=`${z.ico} ${z.th} (${z.en})\n   📷 รูป: ${cnt}/${N_PHOTOS} ใบ\n`;
+    if(rmk) txt+=`   📝 หมายเหตุ: ${rmk}\n`;
+  });
+  txt+=`${'─'.repeat(30)}\n✅ รายงานโดยระบบ DHL 5S Check\n⏳ รอผู้จัดการให้คะแนน`;
+  copy(txt,'✅ คัดลอกแล้ว! วางใน Line ได้เลย');
+}
+
+function resetStaff() {
+  ZONES.forEach(z=>{ST.photos[z.id]=Array(N_PHOTOS).fill(null);});
+  document.getElementById('depotSel').value='';
+  document.getElementById('staffEl').value='';
+  document.getElementById('hdrSub').textContent='DHL Ecommerce Solution Thailand';
+  show('scRole');
+}
+
+// ─── MANAGER ──────────────────────────────────────────────
+function mgLogin() {
+  const pass=prompt('🔐 รหัสผ่าน Manager:');
+  if(pass===null) return;
+  if(pass!==MGR_PASS){alert('❌ รหัสผ่านไม่ถูกต้อง');return;}
+  ZONES.forEach(z=>{MGR.scores[z.id]=0;MGR.remarks[z.id]='';});
+  buildMgr();
+  document.getElementById('mgrDate').value=new Date().toISOString().split('T')[0];
+  show('scManager');
+}
+
+function buildMgr() {
+  const wrap=document.getElementById('mgrCards');
+  wrap.innerHTML=`<div class="slots-lbl" style="margin-top:4px;">⭐ ให้คะแนนแต่ละโซน (1=แย่มาก → 5=ดีมาก)</div>`;
+  ZONES.forEach(z=>{
+    const stars=[1,2,3,4,5].map(n=>
+      `<button class="szstar" id="sz_${z.id}_${n}" onclick="setMgr('${z.id}',${n})">${n}⭐</button>`
+    ).join('');
+    wrap.innerHTML+=`
+    <div class="szcard">
+      <div class="szname ${z.c}">${z.ico} ${z.th} <span style="font-weight:400;font-size:11px;color:#aaa;">${z.en}</span></div>
+      <div class="szstars">${stars}</div>
+      <textarea class="szrmk" id="mrmk_${z.id}" placeholder="หมายเหตุ / ข้อเสนอแนะ..."></textarea>
+    </div>`;
+  });
+}
+
+function setMgr(zid,v) {
+  MGR.scores[zid]=v;
+  for(let n=1;n<=5;n++){
+    const b=document.getElementById(`sz_${zid}_${n}`);
+    if(b) b.classList.toggle('lit',n<=v);
+  }
+}
+
+function saveMgr() {
+  const depot=document.getElementById('mgrDepot').value;
+  const date=document.getElementById('mgrDate').value;
+  if(!depot){alert('กรุณาเลือก Depot');return;}
+  if(!date){alert('กรุณาเลือกวันที่');return;}
+  const ns=ZONES.filter(z=>MGR.scores[z.id]===0);
+  if(ns.length){alert(`กรุณาให้คะแนน:\n${ns.map(z=>`• ${z.ico} ${z.th}`).join('\n')}`);return;}
+  MGR.depot=depot; MGR.date=date;
+  ZONES.forEach(z=>{ MGR.remarks[z.id]=document.getElementById(`mrmk_${z.id}`)?.value||''; });
+  const total=ZONES.reduce((a,z)=>a+MGR.scores[z.id],0);
+  const max=ZONES.length*5, pct=Math.round(total/max*100);
+  const grade=pct>=90?'A 🏆':pct>=75?'B ⭐⭐':pct>=60?'C ⭐':'D ⚠️';
+  document.getElementById('mgrDoneSub').textContent=`${depot} | ${date}`;
+  let html=`
+    <div class="sr"><span class="sk">📍 Depot</span><span class="sv">${depot}</span></div>
+    <div class="sr"><span class="sk">📅 วันที่</span><span class="sv">${date}</span></div>`;
+  ZONES.forEach(z=>{
+    const sc=MGR.scores[z.id];
+    html+=`<div class="sr"><span class="sk ${z.c}">${z.ico} ${z.th}</span><span class="sv">${'⭐'.repeat(sc)} (${sc}/5)</span></div>`;
+  });
+  html+=`
+    <div class="sr"><span class="sk">🏆 คะแนนรวม</span><span class="sv"><span class="spill">${total}/${max} (${pct}%)</span></span></div>
+    <div class="sr"><span class="sk">📊 เกรด</span><span class="sv" style="font-size:15px;">${grade}</span></div>`;
+  document.getElementById('mgrSumCard').innerHTML=html;
+  show('scMgrDone');
+}
+
+function copyMgrReport() {
+  const total=ZONES.reduce((a,z)=>a+MGR.scores[z.id],0);
+  const max=ZONES.length*5, pct=Math.round(total/max*100);
+  const grade=pct>=90?'A':pct>=75?'B':pct>=60?'C':'D';
+  let txt=`📊 รายงานคะแนน 5S — DHL Ecommerce\n${'─'.repeat(30)}\n`;
+  txt+=`📍 Depot : ${MGR.depot}\n📅 วันที่ : ${MGR.date}\n${'─'.repeat(30)}\n`;
+  ZONES.forEach(z=>{
+    txt+=`${z.ico} ${z.th}: ${'⭐'.repeat(MGR.scores[z.id])} (${MGR.scores[z.id]}/5)\n`;
+    if(MGR.remarks[z.id]) txt+=`   💬 ${MGR.remarks[z.id]}\n`;
+  });
+  txt+=`${'─'.repeat(30)}\n🏆 รวม: ${total}/${max} (${pct}%) — เกรด ${grade}\n✅ ประเมินโดย: Manager DHL`;
+  copy(txt,'✅ คัดลอกรายงานแล้ว!');
+}
+
+// ─── UTILS ────────────────────────────────────────────────
+function copy(txt,msg) {
+  navigator.clipboard.writeText(txt)
+    .then(()=>alert(msg))
+    .catch(()=>{
+      const ta=document.createElement('textarea');
+      ta.value=txt;document.body.appendChild(ta);
+      ta.select();document.execCommand('copy');
+      document.body.removeChild(ta);alert(msg);
+    });
+}
+</script>
+</body>
+</html>
